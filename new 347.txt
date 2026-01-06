@@ -1,0 +1,35 @@
+SELECT DISTINCT 
+
+			  child.organization_id Div_org_id, 
+			  child.name Division, -- potnv.tree_version_id,
+			  ftv.tree_version_name,
+			  --parent.organization_id parent_org_id, 
+			  --parent.name parent_org_name,
+			  LEVEL AS lvl,
+			  DEPTH AS DEP,
+			  SYS_CONNECT_BY_PATH(child.name, '|') path1,
+		 Substr(SYS_CONNECT_BY_PATH(child.name, '|'),2,instr(SYS_CONNECT_BY_PATH(child.name, '|'),'|',2)-2) Dept_name,
+		 Substr(SYS_CONNECT_BY_PATH(child.organization_id, '|'),2,instr(SYS_CONNECT_BY_PATH(child.organization_id, '|'),'|',2)-2) Dept_id
+ 
+		  FROM 
+			  per_org_tree_node_v potnv,
+			  FND_TREE_VERSION_VL ftv,
+			  hr_all_organization_units child,
+			  hr_all_organization_units parent
+
+		  WHERE  1 = 1
+			--  potnv.organization_id = haou.organization_id
+			  AND potnv.tree_code = 'DD_ORG_TREE'
+			  and potnv.organization_id = child.organization_id
+			  and potnv.parent_organization_id = parent.organization_id
+			  and trunc(sysdate) between child.effective_start_date and child.effective_end_date
+			   and trunc(sysdate) between parent.effective_start_date and parent.effective_end_date
+			  AND potnv.tree_version_id = ftv.tree_version_id
+			--  and ftv.tree_version_name = 'DD Org Tree V3 EDM'
+			  and ftv.TREE_STRUCTURE_CODE ='PER_ORG_TREE_STRUCTURE'
+			  AND ftv.tree_code = potnv.tree_code
+			  AND ftv.status = 'ACTIVE'
+			  and CONNECT_BY_ISLEAF = 1
+				 START WITH    translate(substr(child.name,1,4),'x0123456789','x') is null
+			--START WITH  child.organization_id = 300000008877011
+		  CONNECT BY PRIOR potnv.parent_organization_id  = potnv.organization_id 
